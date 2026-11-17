@@ -83,6 +83,7 @@ public final class Home extends Activity implements Player.Host {
 
     private int width;
     private SkyView sky;
+    private Snow snow;
     private TextView clock, date, dockLabel;
     private Glass.Panel dock, drawer;
     private LinearLayout dockRow, list;
@@ -112,11 +113,14 @@ public final class Home extends Activity implements Player.Host {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         width = getResources().getDisplayMetrics().widthPixels;
+        // No backgrounds under the sky: it covers the whole screen, and every hidden layer is a
+        // full-screen pass the TV's GPU would paint for nothing.
         FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(Color.BLACK);
 
         sky = new SkyView(this);
         root.addView(sky, new FrameLayout.LayoutParams(MATCH, MATCH));
+        snow = new Snow(this);
+        root.addView(snow, new FrameLayout.LayoutParams(MATCH, MATCH));
 
         clock = text(9f, Color.WHITE, Typeface.create("sans-serif-thin", Typeface.NORMAL));
         clock.setShadowLayer(cq(1.4f), 0, cq(.25f), 0x55000000);
@@ -152,12 +156,12 @@ public final class Home extends Activity implements Player.Host {
 
         // Bottom: the glass dock.
         dock = new Glass.Panel(this, cq(2.8f));
-        dock.setElevation(cq(1.2f));
         dock.setClipChildren(false);
         dock.setClipToPadding(false);
         dockRow = new LinearLayout(this);
         dockRow.setOrientation(LinearLayout.HORIZONTAL);
-        dockRow.setPadding(px(1.3f), px(1.3f), px(1.3f), px(1.3f));
+        // Enough room above the icons that a focused one (scaled 1.1 and lifted) stays inside the glass.
+        dockRow.setPadding(px(1.4f), px(1.7f), px(1.4f), px(1.5f));
         dockRow.setClipChildren(false);
         dockRow.setClipToPadding(false);
         dock.addView(dockRow);
@@ -217,6 +221,7 @@ public final class Home extends Activity implements Player.Host {
         list.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
 
         setContentView(root);
+        getWindow().setBackgroundDrawable(null);
         sky.show(Skies.ALPENGLOW, false);
         firstApp.requestFocus();
         updateClock();
@@ -297,19 +302,11 @@ public final class Home extends Activity implements Player.Host {
         final float radius = cq(1.6f);
         FrameLayout t;
         if (e.icon != null) {
+            // Rounded once into a picture: clipping live on every frame costs the TV's GPU.
             t = new FrameLayout(this);
             ImageView img = new ImageView(this);
-            img.setImageDrawable(e.icon);
-            img.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            img.setImageBitmap(rounded(e.icon, px(6.4f), radius, e.color));
             t.addView(img, new FrameLayout.LayoutParams(MATCH, MATCH));
-            t.setBackgroundColor(e.color);
-            t.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View v, Outline o) {
-                    o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), radius);
-                }
-            });
-            t.setClipToOutline(true);
         } else {
             Glass.Panel g = new Glass.Panel(this, radius);
             g.tint = 0x26FFFFFF;
@@ -323,10 +320,9 @@ public final class Home extends Activity implements Player.Host {
         t.setFocusable(true);
         final FrameLayout tile = t;
         t.setOnFocusChangeListener((v, has) -> {
-            v.animate().scaleX(has ? 1.13f : 1f).scaleY(has ? 1.13f : 1f)
-                    .translationY(has ? -cq(1.1f) : 0).setDuration(170)
+            v.animate().scaleX(has ? 1.1f : 1f).scaleY(has ? 1.1f : 1f)
+                    .translationY(has ? -cq(.45f) : 0).setDuration(170)
                     .setInterpolator(new DecelerateInterpolator()).start();
-            v.setElevation(has ? cq(1.2f) : 0);
             tile.setForeground(has ? ring(radius) : null);
             if (tile instanceof Glass.Panel) ((Glass.Panel) tile).setLit(has);
             if (has) {
@@ -337,6 +333,24 @@ public final class Home extends Activity implements Player.Host {
         });
         t.setOnClickListener(v -> open(e));
         return t;
+    }
+
+    /** The icon drawn once into a rounded square bitmap of the given size. */
+    private android.graphics.Bitmap rounded(Drawable icon, int size, float radius, int bg) {
+        android.graphics.Bitmap out = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas c = new android.graphics.Canvas(out);
+        android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        android.graphics.RectF r = new android.graphics.RectF(0, 0, size, size);
+        android.graphics.Bitmap raw = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas rc = new android.graphics.Canvas(raw);
+        rc.drawColor(bg);
+        icon.setBounds(0, 0, size, size);
+        icon.draw(rc);
+        p.setShader(new android.graphics.BitmapShader(raw, android.graphics.Shader.TileMode.CLAMP,
+                android.graphics.Shader.TileMode.CLAMP));
+        c.drawRoundRect(r, radius, radius, p);
+        raw.recycle();
+        return out;
     }
 
     private Drawable ring(float radius) {
@@ -377,20 +391,12 @@ public final class Home extends Activity implements Player.Host {
         View badge;
         if (e.icon != null) {
             ImageView img = new ImageView(this);
-            img.setImageDrawable(e.icon);
-            img.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            img.setImageBitmap(rounded(e.icon, px(1.9f), rad, e.color));
             badge = img;
         } else {
             badge = new View(this);
             badge.setBackground(round(e.color, rad));
         }
-        badge.setOutlineProvider(new ViewOutlineProvider() {
-            @Override
-            public void getOutline(View v, Outline o) {
-                o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), rad);
-            }
-        });
-        badge.setClipToOutline(true);
         LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(px(1.9f), px(1.9f));
         slp.rightMargin = px(1.1f);
         r.addView(badge, slp);
@@ -450,7 +456,17 @@ public final class Home extends Activity implements Player.Host {
 
     private void slide(View v, float x, long ms) {
         ViewPropertyAnimator a = v.animate().translationX(x).setDuration(ms).setInterpolator(new DecelerateInterpolator());
-        if (v instanceof Glass.Panel) a.setUpdateListener(u -> v.invalidate());
+        if (v == drawer) {
+            // As the drawer moves, the sky and snow stop painting the part it already covers.
+            a.setUpdateListener(u -> {
+                v.invalidate();
+                int edge = Math.max(0, Math.round(v.getTranslationX() + v.getWidth()) - 2);
+                sky.setCut(edge);
+                snow.setCut(edge);
+            });
+        } else if (v instanceof Glass.Panel) {
+            a.setUpdateListener(u -> v.invalidate());
+        }
         a.start();
     }
 
@@ -586,6 +602,20 @@ public final class Home extends Activity implements Player.Host {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        // Profiling switch over adb: am start -n tv.rajs.sunset/.Home --ei hide <bits>
+        // 1 sky, 2 snow, 4 dock, 8 top-left (clock, date, weather), 16 pills and player.
+        if (intent.hasExtra("hide")) {
+            int b = intent.getIntExtra("hide", 0);
+            sky.setVisibility((b & 1) != 0 ? View.INVISIBLE : View.VISIBLE);
+            snow.setVisibility((b & 2) != 0 ? View.INVISIBLE : View.VISIBLE);
+            dock.setVisibility((b & 4) != 0 ? View.INVISIBLE : View.VISIBLE);
+            int tl = (b & 8) != 0 ? View.INVISIBLE : View.VISIBLE;
+            clock.setVisibility(tl);
+            date.setVisibility(tl);
+            weather.setVisibility(tl);
+            ((View) inputsPill.getParent()).setVisibility((b & 16) != 0 ? View.INVISIBLE : View.VISIBLE);
+            return;
+        }
         if (drawerOpen) closeDrawer();
         firstApp.requestFocus();
     }
@@ -599,6 +629,8 @@ public final class Home extends Activity implements Player.Host {
         updateClock();
         player.resume();
         weather.resume();
+        sky.setRunning(true);
+        snow.setRunning(true);
         getWindow().getDecorView().post(Guard::shown);
     }
 
@@ -607,6 +639,8 @@ public final class Home extends Activity implements Player.Host {
         inFront = false;
         player.pause();
         weather.pause();
+        sky.setRunning(false);
+        snow.setRunning(false);
         try {
             unregisterReceiver(tick);
         } catch (IllegalArgumentException ignored) {

@@ -20,6 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-The background photo and its cutout (res/drawable-nodpi/sky_mountains.webp,
+The background photo and the layers derived from it (res/drawable-nodpi/front_*.webp,
 design/photos/marmolada-sunset-1920.jpg) are not covered by this license:
 "Marmolada Sunset" by Dmitry A. Mottl, CC BY-SA 3.0. See NOTICE.

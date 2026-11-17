@@ -105,7 +105,6 @@ final class Player extends Glass.Panel {
         this.host = host;
         sessions = (MediaSessionManager) c.getSystemService(Context.MEDIA_SESSION_SERVICE);
         listener = new ComponentName(c, NowPlaying.class);
-        setElevation(host.cq(1.4f));
 
         LinearLayout col = new LinearLayout(c);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -119,15 +118,6 @@ final class Player extends Glass.Panel {
         top.setGravity(Gravity.CENTER_VERTICAL);
         art = new ImageView(c);
         art.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        art.setBackgroundColor(0x33000000);
-        final float artRadius = cq(1.2f);
-        art.setOutlineProvider(new ViewOutlineProvider() {
-            @Override
-            public void getOutline(View v, Outline o) {
-                o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), artRadius);
-            }
-        });
-        art.setClipToOutline(true);
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(px(7.4f), px(7.4f));
         alp.rightMargin = px(1.8f);
         top.addView(art, alp);
@@ -364,7 +354,7 @@ final class Player extends Glass.Panel {
         if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
         String key = md.getString(MediaMetadata.METADATA_KEY_TITLE) + "|" + md.getString(MediaMetadata.METADATA_KEY_ARTIST);
         if (b != null) {
-            art.setImageBitmap(b);
+            art.setImageBitmap(roundArt(b));
             artKey = key;
             return;
         }
@@ -395,9 +385,26 @@ final class Player extends Glass.Panel {
             }
             final Bitmap result = got;
             ui.post(() -> {
-                if (result != null && want.equals(artKey)) art.setImageBitmap(result);
+                if (result != null && want.equals(artKey)) art.setImageBitmap(roundArt(result));
             });
         }, "art").start();
+    }
+
+    /** Album art cropped to a rounded square once per track (no live clipping each frame). */
+    private Bitmap roundArt(Bitmap src) {
+        int size = px(7.4f);
+        Bitmap out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(out);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        android.graphics.BitmapShader sh = new android.graphics.BitmapShader(src, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+        float k = Math.max(size / (float) src.getWidth(), size / (float) src.getHeight());
+        android.graphics.Matrix m = new android.graphics.Matrix();
+        m.setScale(k, k);
+        m.postTranslate((size - src.getWidth() * k) / 2f, (size - src.getHeight() * k) / 2f);
+        sh.setLocalMatrix(m);
+        p.setShader(sh);
+        c.drawRoundRect(new RectF(0, 0, size, size), cq(1.2f), cq(1.2f), p);
+        return out;
     }
 
     private void startWave() {

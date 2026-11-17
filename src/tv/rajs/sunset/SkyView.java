@@ -1,156 +1,141 @@
 package tv.rajs.sunset;
 
-import android.animation.ArgbEvaluator;
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
-import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
-import android.graphics.RadialGradient;
-import android.graphics.RectF;
 import android.graphics.Shader;
+import android.os.SystemClock;
+import android.view.Choreographer;
 import android.view.View;
-import android.view.animation.DecelerateInterpolator;
 
 /**
- * The background: a painted sky, generated clouds blended over it, a glow on the clouds in the
- * app's color, the cut-out mountains on top, a tint on the peaks, and a shade for readability.
- * Every change is also painted small into {@link Glass#backdrop} for the glass panels.
+ * The living background, built for a TV GPU at 60 fps (measured on the TV, see the README):
+ *
+ * - The sky with its clouds and glow is pre-painted on a worker thread (Glass) at half size,
+ *   only when the colors change. Each frame the GPU just slides that seamless picture for the
+ *   drifting clouds: one plain textured pass.
+ * - The sun's haze is one gradient pass that stays put.
+ * - The mountains are drawn sharp from two baked layers (Scene).
+ *
+ * The palette eases to each app's sky; the clouds cross the screen in 150 s. Everything stops
+ * when an app opens.
  */
-final class SkyView extends View {
-    private static final long FADE_MS = 1100;
+final class SkyView extends View implements Choreographer.FrameCallback {
+    private static final long FADE_MS = 900;
+    private static final float DRIFT_PER_MS = 1f / 150_000f;
+    private static final long GLASS_EVERY_MS = 350;
 
-    /** The four layers at one size. */
-    private static final class Layers {
-        final Bitmap mountains, mask, clouds, glow;
-        Layers(Bitmap mountains, Bitmap clouds, Bitmap glow) {
-            this.mountains = mountains;
-            this.mask = mountains.extractAlpha();
-            this.clouds = clouds;
-            this.glow = glow;
-        }
-    }
-
-    private final Layers full, small;
-    private final Canvas smallCanvas = new Canvas(Glass.backdrop);
-    private final Paint sky = new Paint(Paint.DITHER_FLAG);
-    private final Paint bitmap = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Paint cloud = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Paint glow = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Paint tint = new Paint(Paint.FILTER_BITMAP_FLAG);
-    private final Paint tintLayer = new Paint();
-    private final RectF dst = new RectF();
-    private final Matrix sun = new Matrix();
-    private final ArgbEvaluator argb = new ArgbEvaluator();
-
+    private final Scene scene;
+    private final Paint skyPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+    private final BitmapShader[] skyShaders = new BitmapShader[3];
+    private final Matrix m = new Matrix();
     private final int[] from = new int[6], to = new int[6], now = new int[6];
-    private ValueAnimator fade;
+    private long fadeStart = -1, lastFrame, lastGlass;
+    private float drift;
+    private boolean running, posted;
+    /** Pixels on the left covered by the open drawer: not painted (its glass shows the blurred copy). */
+    private int cut;
+
+    void setCut(int px) {
+        if (cut == px) return;
+        cut = px;
+        invalidate();
+    }
 
     SkyView(Context c) {
         super(c);
-        BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inScaled = false;
-        Bitmap mountains = BitmapFactory.decodeResource(getResources(), R.drawable.sky_mountains, o);
-        Bitmap clouds = BitmapFactory.decodeResource(getResources(), R.drawable.sky_clouds, o);
-        Bitmap g = BitmapFactory.decodeResource(getResources(), R.drawable.sky_glow, o);
-        Bitmap glowMask = g.extractAlpha();
-        full = new Layers(mountains, clouds, glowMask);
-        small = new Layers(Bitmap.createScaledBitmap(mountains, Glass.W, Glass.H, true),
-                Bitmap.createScaledBitmap(clouds, Glass.W, Glass.H, true),
-                Bitmap.createScaledBitmap(g, Glass.W, Glass.H, true).extractAlpha());
-        g.recycle();
-
-        cloud.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.OVERLAY));
-        cloud.setAlpha(225);
-        glow.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
-        tintLayer.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.OVERLAY));
-        tintLayer.setAlpha(102);
-
+        scene = new Scene(getResources());
+        Glass.start(scene);
+        Glass.onSky = this::invalidate;
         System.arraycopy(Skies.ALPENGLOW.c, 0, now, 0, 6);
         System.arraycopy(now, 0, to, 0, 6);
-        paintBackdrop();
+        Glass.request(now, 0f);
     }
 
-    /** Fades the sky to {@code s}; instant when {@code animate} is false. */
+    /** Eases the sky to {@code s}; instant when {@code animate} is false. */
     void show(Skies.Sky s, boolean animate) {
         boolean same = true;
         for (int i = 0; i < 6; i++) same &= to[i] == s.c[i];
         if (same) return;
-        if (fade != null) fade.cancel();
         System.arraycopy(now, 0, from, 0, 6);
         System.arraycopy(s.c, 0, to, 0, 6);
-        if (!animate) {
+        if (animate) {
+            fadeStart = SystemClock.uptimeMillis();
+        } else {
+            fadeStart = -1;
             System.arraycopy(to, 0, now, 0, 6);
+            Glass.request(now, drift);
             invalidate();
-            paintBackdrop();
-            return;
         }
-        fade = ValueAnimator.ofFloat(0f, 1f);
-        fade.setDuration(FADE_MS);
-        fade.setInterpolator(new DecelerateInterpolator(1.4f));
-        fade.addUpdateListener(a -> {
-            float t = (float) a.getAnimatedValue();
-            for (int i = 0; i < 6; i++) now[i] = (Integer) argb.evaluate(t, from[i], to[i]);
-            invalidate();
-            paintBackdrop();
-        });
-        fade.start();
+        tick();
     }
 
-    private void paintBackdrop() {
-        scene(smallCanvas, Glass.W, Glass.H, small);
-        Glass.changed();
+    /** Animates while home is in front; stops when an app opens so it costs nothing then. */
+    void setRunning(boolean on) {
+        running = on;
+        lastFrame = SystemClock.uptimeMillis();
+        if (on) tick();
+    }
+
+    private void tick() {
+        if (posted) return;
+        posted = true;
+        Choreographer.getInstance().postFrameCallback(this);
     }
 
     @Override
-    protected void onDraw(Canvas cv) {
-        scene(cv, getWidth(), getHeight(), full);
+    public void doFrame(long frameTimeNanos) {
+        posted = false;
+        long t = SystemClock.uptimeMillis();
+        long dt = Math.min(100, t - lastFrame);
+        lastFrame = t;
+        if (running) drift += dt * DRIFT_PER_MS;
+        boolean fading = fadeStart >= 0;
+        if (fading) {
+            float x = Math.min(1f, (t - fadeStart) / (float) FADE_MS);
+            float e = 1f - (1f - x) * (1f - x) * (1f - x);   // ease out
+            for (int i = 0; i < 6; i++) now[i] = mix(from[i], to[i], e);
+            if (x >= 1f) fadeStart = -1;
+        }
+        invalidate();
+        // The worker re-paints the sky on every step of a fade, and the glass a few times a second.
+        if (fading || t - lastGlass >= GLASS_EVERY_MS) {
+            lastGlass = t;
+            Glass.request(now, drift);
+        }
+        if (running || fadeStart >= 0) tick();
     }
 
-    private void scene(Canvas cv, int w, int h, Layers l) {
-        dst.set(0, 0, w, h);
-        int top = now[0], upper = now[1], middle = now[2], horizon = now[3], hl = now[4], rim = now[5];
-
-        sky.setShader(new LinearGradient(0, 0, 0, h, new int[] {top, upper, middle, horizon, horizon},
-                new float[] {0f, .16f, .32f, .46f, 1f}, Shader.TileMode.CLAMP));
-        cv.drawRect(dst, sky);
-
-        // The sun's glow just above the ridge: an ellipse, wider than tall.
-        RadialGradient rg = new RadialGradient(0, 0, 1, new int[] {horizon, alpha(horizon, 0x88), alpha(horizon, 0)},
-                new float[] {0f, .45f, 1f}, Shader.TileMode.CLAMP);
-        sun.setScale(.42f * w, .2f * h);
-        sun.postTranslate(.62f * w, .44f * h);
-        rg.setLocalMatrix(sun);
-        sky.setShader(rg);
-        cv.drawRect(dst, sky);
-        sky.setShader(null);
-
-        cv.drawBitmap(l.clouds, null, dst, cloud);
-        glow.setColor(hl);
-        glow.setAlpha(190);
-        cv.drawBitmap(l.glow, null, dst, glow);
-
-        cv.drawBitmap(l.mountains, null, dst, bitmap);
-
-        // Light on the peaks in the sky's color, through the mountains' own outline.
-        int save = cv.saveLayer(dst, tintLayer);
-        tint.setShader(new LinearGradient(0, 0, 0, h, new int[] {rim, rim, upper, upper},
-                new float[] {0f, .3f, .8f, 1f}, Shader.TileMode.CLAMP));
-        cv.drawBitmap(l.mask, null, dst, tint);
-        cv.restoreToCount(save);
-
-        sky.setShader(new LinearGradient(0, 0, 0, h, new int[] {0x40000000, 0, 0, 0x8C000000},
-                new float[] {0f, .2f, .6f, 1f}, Shader.TileMode.CLAMP));
-        cv.drawRect(dst, sky);
-        sky.setShader(null);
+    @Override
+    protected void onDraw(Canvas c) {
+        int w = getWidth(), h = getHeight();
+        if (cut > 0) c.clipRect(cut, 0, w, h);
+        Bitmap b = Glass.sky();
+        int slot = Glass.skySlot();
+        if (b != null) {
+            if (skyShaders[slot] == null) {
+                skyShaders[slot] = new BitmapShader(b, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP);
+            }
+            float k = w / (float) b.getWidth();
+            m.setScale(k, k);
+            m.postTranslate((drift - (float) Math.floor(drift)) * w, 0);
+            skyShaders[slot].setLocalMatrix(m);
+            skyPaint.setShader(skyShaders[slot]);
+            c.drawRect(0, 0, w, Scene.skyHeight(h), skyPaint);
+        }
+        scene.drawSun(c, w, h, now);
+        scene.drawMountains(c, w, h, now);
     }
 
-    private static int alpha(int c, int a) {
-        return (c & 0x00ffffff) | (a << 24);
+    private static int mix(int a, int b, float t) {
+        int r = 0;
+        for (int sh = 0; sh <= 24; sh += 8) {
+            int x = (a >> sh) & 255, y = (b >> sh) & 255;
+            r |= Math.round(x + (y - x) * t) << sh;
+        }
+        return r;
     }
 }
