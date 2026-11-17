@@ -73,7 +73,9 @@ adb connect <tv-ip>:5555        # press Allow on the TV
 ADB_SERIAL=<tv-ip>:5555 ./install.sh
 ```
 
-`install.sh` installs the APK, grants media access for the player card, turns on the Home guard, sets `min_futurity=0` and opens Sunset Home. Or skip building and grab the APK from [Releases](https://github.com/Nimay25/sunset-home/releases).
+`install.sh` installs the APK, grants media access for the player card, turns on the Home guard, sets `min_futurity=0` and opens Sunset Home.
+
+**No build tools?** Download the APK from [Releases](https://github.com/Nimay25/sunset-home/releases), clone this repo, and run `ADB_SERIAL=<tv-ip>:5555 ./install.sh ~/Downloads/sunset-home-v2.0.apk`. Only `adb` is needed.
 
 **Undo:** `ADB_SERIAL=<tv-ip>:5555 ./install.sh --undo` hands Home back to Amazon and switches off everything the installer switched on. The app stays installed until you run `adb uninstall tv.rajs.sunset`.
 

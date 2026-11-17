@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Installs Sunset Home on Raj's TV and gives it the HOME button (Fire OS 7).
-#   ./install.sh          install build/sunset-home.apk and take over HOME
-#   ./install.sh --undo   give HOME back to Amazon's launcher (the app stays installed)
+#   ./install.sh               install build/sunset-home.apk and take over HOME
+#   ./install.sh file.apk      same, with an APK downloaded from Releases
+#   ./install.sh --undo        give HOME back to Amazon's launcher (the app stays installed)
 # HOME takeover adapted from dumbtv home's launcher/install.sh (MIT).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -26,7 +27,9 @@ if [[ ${1:-} == --undo ]]; then
   exit 0
 fi
 
-out=$(adb -s "$SERIAL" install -r build/sunset-home.apk 2>&1 | grep -m1 -E 'Success|Failure|failed' || true)
+APK=${1:-build/sunset-home.apk}
+[[ -f $APK ]] || { echo "error: no $APK — run ./build.sh or pass a downloaded APK" >&2; exit 1; }
+out=$(adb -s "$SERIAL" install -r "$APK" 2>&1 | grep -m1 -E 'Success|Failure|failed' || true)
 [[ $out == *Success* ]] || { echo "error: install failed: $out" >&2; exit 1; }
 echo "installed $PKG"
 
