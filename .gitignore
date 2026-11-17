@@ -1,0 +1,9 @@
+build/
+*.keystore
+*.jks
+before-home-takeover.txt
+.DS_Store
+design/marm_mountains.png
+design/cutout-*.jpg
+design/skies-preview.jpg
+__pycache__/

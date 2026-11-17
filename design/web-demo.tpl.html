@@ -1,0 +1,235 @@
+<title>Sunset Home</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Inter+Tight:wght@200;300;400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one big TV in a dark room, remote under it, then a swatch wall of every app's sky. Single dark theme on purpose. */
+:root{
+  --room:#0c0d12; --panel:#161821; --line:#272b37; --text:#eceef3; --muted:#8d95a6; --led:#ffb36b;
+  --f-display:'Bricolage Grotesque','Inter Tight',system-ui,sans-serif;
+  --f-body:'Inter Tight',system-ui,-apple-system,sans-serif;
+  --f-ui:'Plus Jakarta Sans','Inter Tight',system-ui,sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+@property --s1{syntax:'<color>';inherits:true;initial-value:#1e2350}
+@property --s2{syntax:'<color>';inherits:true;initial-value:#5a3f8a}
+@property --s3{syntax:'<color>';inherits:true;initial-value:#e0607e}
+@property --s4{syntax:'<color>';inherits:true;initial-value:#ffb36b}
+@property --hl{syntax:'<color>';inherits:true;initial-value:#ff7a6b}
+@property --rim{syntax:'<color>';inherits:true;initial-value:#ff9a6b}
+html,body{background:var(--room);color:var(--text)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:1240px;margin:0 auto}
+header{padding-block:36px 22px;display:grid;gap:12px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.eyebrow .led{width:8px;height:8px;border-radius:50%;background:#7be38a;box-shadow:0 0 10px #7be38a}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(34px,6vw,60px);line-height:1;margin:0;letter-spacing:-.02em}
+.lede{margin:0;max-width:64ch;color:#c5cad6;font-size:16px}
+
+.tv{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;container-type:inline-size;background:#000;border-radius:6px;box-shadow:0 0 0 8px #050608,0 0 0 9px #242833,0 24px 60px rgba(0,0,0,.6);overflow:hidden}
+.ctl{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-top:26px}
+.ctl button,.tour{font:600 14px var(--f-body);color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer;min-width:44px}
+.ctl .pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,40px);gap:4px}
+.ctl .pad button{padding:0;border-radius:8px}
+.ctl .u{grid-column:2}.ctl .l{grid-column:1;grid-row:2}.ctl .d{grid-column:2;grid-row:2}.ctl .r{grid-column:3;grid-row:2}
+.tour[aria-pressed="true"]{background:var(--led);color:#1d1004;border-color:var(--led)}
+button:focus-visible{outline:2px solid var(--led);outline-offset:2px}
+.hint{text-align:center;color:var(--muted);font-size:13px;margin:10px 0 0}
+
+.skies{margin-top:44px}
+.skies h2{font-family:var(--f-display);font-size:clamp(22px,3vw,30px);margin:0 0 4px}
+.skies>p{margin:0 0 18px;color:#c5cad6}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,180px),1fr));gap:12px}
+.sw button{all:unset;cursor:pointer;display:grid;gap:8px;padding:8px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.sw button:focus-visible{outline:2px solid var(--led);outline-offset:2px}
+.sw button[aria-current="true"]{border-color:var(--text)}
+.sw .chip{height:64px;border-radius:7px}
+.sw b{font:600 14px var(--f-body);display:block}
+.sw small{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.note{margin-top:28px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:#c5cad6;font-size:14px;max-width:80ch}
+.note b{color:var(--text)}
+
+/* ============ the screen (cqw units: 100cqw = screen width) ============ */
+.scr{position:absolute;inset:0;overflow:hidden;font-size:1.6cqw;line-height:1.2;color:#fff;font-family:'Inter Tight',sans-serif;
+  transition:--s1 1.3s ease,--s2 1.3s ease,--s3 1.3s ease,--s4 1.3s ease,--hl 1.3s ease,--rim 1.3s ease}
+.scr *{box-sizing:border-box}
+.scr i{font-style:normal}
+.L{position:absolute;inset:0;pointer-events:none}
+#scr{--i-mtn:url({{MTN}});--i-cld:url({{CLD}});--i-glw:url({{GLW}})}
+.sky{background:
+  radial-gradient(42% 20% at 62% 44%,var(--s4) 0%,transparent 72%),
+  linear-gradient(180deg,var(--s1) 0%,var(--s2) 16%,var(--s3) 32%,var(--s4) 46%,var(--s4) 100%)}
+.cld{background:var(--i-cld) 0 0/100% 100% no-repeat;mix-blend-mode:overlay;opacity:.85}
+.glw{background:var(--hl);-webkit-mask:var(--i-glw) 0 0/100% 100% no-repeat;mask:var(--i-glw) 0 0/100% 100% no-repeat;mix-blend-mode:screen;opacity:.7}
+.mtn{background:var(--i-mtn) 0 0/100% 100% no-repeat}
+.tint{background:linear-gradient(180deg,var(--rim) 20%,var(--s2) 75%);-webkit-mask:var(--i-mtn) 0 0/100% 100% no-repeat;mask:var(--i-mtn) 0 0/100% 100% no-repeat;mix-blend-mode:soft-light;opacity:.75}
+.shade{background:linear-gradient(180deg,rgba(0,0,0,.28) 0%,transparent 20%,transparent 60%,rgba(0,0,0,.55) 100%)}
+
+.tm{position:absolute;left:5cqw;top:3.4cqw;font-weight:200;font-size:9cqw;letter-spacing:-.03em;line-height:1;text-shadow:0 .3cqw 2cqw rgba(0,0,0,.3);transition:transform .3s ease}
+.dt{position:absolute;left:5.3cqw;top:13.6cqw;font-size:1.6cqw;font-weight:500;opacity:.92;text-shadow:0 .2cqw 1cqw rgba(0,0,0,.4);transition:transform .3s ease;white-space:nowrap}
+.dt em{font-style:normal;opacity:.75}
+.top{position:absolute;right:4cqw;top:4.2cqw;display:flex;gap:1cqw}
+.top .t{font-size:1.2cqw;font-weight:500;padding:.6cqw 1.4cqw;border-radius:5cqw;background:rgba(0,0,0,.28);border:.1cqw solid rgba(255,255,255,.25)}
+.top .t.on{background:#fff;color:#111;border-color:#fff}
+
+.bar{position:absolute;left:50%;bottom:4.6cqw;transform:translateX(-50%);display:flex;gap:1.4cqw;padding:1.3cqw;border-radius:2.8cqw;background:rgba(8,10,20,.45);border:.1cqw solid rgba(255,255,255,.12)}
+.bar .t{width:6.4cqw;height:6.4cqw;border-radius:1.6cqw;background:var(--c);color:var(--ink,#fff);display:grid;place-items:center;position:relative;transition:transform .18s ease,box-shadow .18s}
+.bar .t i{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:2.4cqw;letter-spacing:-.02em}
+.bar .t b{position:absolute;top:calc(100% + 1.8cqw);left:50%;transform:translateX(-50%);font-size:1.15cqw;font-weight:500;white-space:nowrap;opacity:0;color:#fff;transition:opacity .15s}
+.bar .t.on{transform:translateY(-1.1cqw) scale(1.12);box-shadow:0 1.2cqw 2.4cqw rgba(0,0,0,.45),0 0 0 .25cqw #fff}
+.bar .t.on b{opacity:1}
+.bar .all{background:rgba(255,255,255,.16);border:.1cqw solid rgba(255,255,255,.3)}
+.bar .all i{font-size:2.6cqw;font-weight:500}
+
+.drawer{position:absolute;left:0;top:0;bottom:0;width:25cqw;background:rgba(8,10,20,.84);padding:2.6cqw 1.6cqw;display:flex;flex-direction:column;gap:.15cqw;transform:translateX(-100%);transition:transform .28s ease;z-index:3}
+.drawer .lg{font-size:1cqw;letter-spacing:.18em;text-transform:uppercase;opacity:.55;padding:0 1.1cqw .8cqw;display:flex;justify-content:space-between}
+.drawer .sep{height:.1cqw;background:rgba(255,255,255,.12);margin:.5cqw 1.1cqw}
+.ri{display:flex;align-items:center;gap:1.1cqw;padding:.55cqw 1.1cqw;border-radius:.9cqw;font-family:'Plus Jakarta Sans',sans-serif;font-size:1.35cqw;font-weight:600;color:#cfd3e2;transition:background .15s,color .15s}
+.ri::before{content:"";width:1.2cqw;height:1.2cqw;border-radius:.35cqw;background:var(--c);flex:none;box-shadow:inset 0 0 0 .08cqw rgba(255,255,255,.25)}
+.ri.on{background:#fff;color:#111}
+.scr.open .drawer{transform:none}
+.scr.open .tm,.scr.open .dt{transform:translateX(22cqw)}
+.scr .t{cursor:pointer}
+@media (prefers-reduced-motion:reduce){.scr,.scr *{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow"><span class="led"></span><span>RAJ'S TV · CONNECTED</span><span>Fire OS 7.7.1.7</span><span>2 GB RAM</span><span>4K panel, 1080p UI</span></div>
+    <h1>Sunset Home</h1>
+    <p class="lede">Layout 19 with your mountains. The sky is cut out and repainted live, so every app you land on gets its own sunset, and the light on the peaks shifts with it. Arrow keys or the buttons move around. Press left or OK on the ≡ tile to open every app.</p>
+  </header>
+
+  <div class="tv" id="tv">
+    <div class="scr" id="scr">
+      <div class="L sky"></div><div class="L cld"></div><div class="L glw"></div><div class="L mtn"></div><div class="L tint"></div><div class="L shade"></div>
+      <div class="tm" data-time></div>
+      <div class="dt"><span data-date></span> <em>· <span data-sky></span> sky</em></div>
+      <div class="top" id="top"></div>
+      <div class="bar" id="bar"></div>
+      <div class="drawer" id="drawer"></div>
+    </div>
+  </div>
+
+  <div class="ctl">
+    <div class="pad" aria-label="Remote">
+      <button class="u" data-dir="up" aria-label="Up">▲</button>
+      <button class="l" data-dir="left" aria-label="Left">◀</button>
+      <button class="d" data-dir="down" aria-label="Down">▼</button>
+      <button class="r" data-dir="right" aria-label="Right">▶</button>
+    </div>
+    <button id="ok">OK</button>
+    <button id="back">Back</button>
+    <button class="tour" id="tour" aria-pressed="false">Play all skies</button>
+  </div>
+  <p class="hint">Keyboard: arrows move, Enter is OK, Esc is Back</p>
+
+  <section class="skies">
+    <h2>17 skies</h2>
+    <p>One per app, input and menu on Raj's TV. Click any to jump the TV there.</p>
+    <div class="sw" id="sw"></div>
+  </section>
+
+  <p class="note"><b>Web preview</b> of the Fire TV home screen in this repo. Photo: <a href="https://commons.wikimedia.org/wiki/File:Marmolada_Sunset.jpg">Marmolada Sunset</a> by Dmitry A. Mottl, CC BY-SA 3.0, with the sky cut out and repainted live. The TV app adds liquid glass, real app icons, weather and what's playing on Spotify.</p>
+</div>
+
+<script>
+// key: [name, tile color, ink, glyph, sky name, [s1,s2,s3,s4,hl,rim]]
+const APPS={
+ all:['All apps','#fff','#fff','≡','Alpenglow',['#1e2350','#5a3f8a','#e0607e','#ffb36b','#ff7a6b','#ff9a6b']],
+ yt:['YouTube','#e5231b','#fff','Y','Ember',['#14030a','#6e0b1a','#e5231b','#ffb347','#ff4a2e','#ff5a3a']],
+ nf:['Netflix','#c3121c','#fff','N','Crimson Night',['#050003','#3a0009','#b20710','#ff6f4f','#e50914','#c3121c']],
+ pv:['Prime Video','#1f8fff','#fff','P','Glacier',['#020d1f','#0a3d75','#1f8fff','#9fe8ff','#59c2ff','#6fc8ff']],
+ hu:['Hulu','#1ce783','#062114','H','Aurora',['#010f12','#06463f','#1ce783','#e6ff8a','#39ffa0','#3df2a0']],
+ mx:['Max','#2f3dff','#fff','M','Ultraviolet',['#08061f','#2a1d8f','#6a5cff','#ff9ad5','#8f7dff','#7a6bff']],
+ dp:['Disney+','#1b44c8','#fff','D+','Starlit Gold',['#030828','#13308f','#4f74ff','#ffd98a','#ffd36b','#7f9bff']],
+ pc:['Peacock','#16161a','#fff','Pk','Peacock Plume',['#050a1a','#0b5568','#5b3ccf','#ffc94a','#2fd6c9','#38c9c0']],
+ pp:['Paramount+','#0064ff','#fff','P+','Midnight Summit',['#01041a','#0b1e66','#3456c9','#e6ecff','#c7d3ff','#9fb4ff']],
+ ph:['Philo','#6a3bd1','#fff','Ph','Lilac Haze',['#1a0f2e','#5b3f9a','#c58cf0','#ffe3f2','#d9a8ff','#c99af0']],
+ rk:['The Roku Channel','#6c1d9e','#fff','R','Grape and Peach',['#14021e','#4d0f73','#a845c9','#ffb07a','#c867ff','#b65ad8']],
+ sp:['Spotify','#1ed760','#062114','S','Emerald Dusk',['#03100a','#0b4429','#1db954','#ffd36e','#5cf58a','#2fe070']],
+ h1:['HDMI 1','#5b6cff','#fff','1','Neon',['#04021a','#2b1fb8','#ff2fa8','#ffcf6b','#ff4fd0','#6b5cff']],
+ h2:['HDMI 2','#8a94a6','#fff','2','Steel Dawn',['#0c1420','#34506f','#9cb4cc','#ffe0bf','#d6e4f2','#b8cde2']],
+ ap:['AirPlay','#dfe2ea','#111','A','Cotton Candy',['#233063','#7d6fc4','#f59bbd','#fff0d1','#ffc2dc','#f7b0cc']],
+ in:['Inputs','#4fb3bf','#fff','I','Teal and Tangerine',['#04202a','#12606e','#ff8a5c','#ffd2a1','#ff9e70','#ff9a6b']],
+ st:['Settings','#7d8590','#fff','S','Blue Hour',['#070b18','#1d2742','#4c5b85','#aab6d6','#8696c4','#8a9bc8']]
+};
+const DOCK=['all','yt','nf','hu','mx','dp','sp'];
+const DRAWER=['yt','nf','pv','hu','mx','dp','pc','pp','ph','rk','sp','|','h1','h2','ap','st'];
+const scr=document.getElementById('scr');
+const tile=(k,cls,inner)=>{const a=APPS[k];return `<div class="t ${cls}" data-k="${k}" style="--c:${a[1]};--ink:${a[2]}">${inner}</div>`};
+document.getElementById('top').innerHTML=tile('in','','Inputs')+tile('st','','Settings');
+document.getElementById('bar').innerHTML=DOCK.map(k=>tile(k,k==='all'?'all':'',`<i>${APPS[k][3]}</i><b>${APPS[k][0]}</b>`)).join('');
+document.getElementById('drawer').innerHTML=`<div class="lg"><span>All apps</span><span>${DRAWER.filter(k=>k!=='|').length}</span></div>`+DRAWER.map(k=>k==='|'?'<div class="sep"></div>':tile(k,'ri',APPS[k][0])).join('');
+
+const pad=n=>String(n).padStart(2,'0');
+function tick(){const n=new Date();scr.querySelector('[data-time]').textContent=(n.getHours()%12||12)+':'+pad(n.getMinutes());scr.querySelector('[data-date]').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}
+
+function setSky(k){
+  const p=APPS[k][5];['--s1','--s2','--s3','--s4','--hl','--rim'].forEach((v,i)=>scr.style.setProperty(v,p[i]));
+  scr.querySelector('[data-sky]').textContent=APPS[k][4];
+  document.querySelectorAll('#sw button').forEach(b=>b.setAttribute('aria-current',b.dataset.k===k));
+}
+function focusTile(el){
+  if(!el)return;
+  scr.querySelectorAll('.t.on').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  scr.classList.toggle('open',!!el.closest('.drawer'));
+  setSky(el.dataset.k);
+}
+function move(dir){
+  const ts=[...scr.querySelectorAll('.t')],cur=scr.querySelector('.t.on');
+  const r=cur.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let best=null,bd=Infinity;
+  for(const el of ts){
+    if(el===cur)continue;
+    const q=el.getBoundingClientRect(),x=q.left+q.width/2-cx,y=q.top+q.height/2-cy;
+    const [m,c]=dir==='left'?[-x,y]:dir==='right'?[x,y]:dir==='up'?[-y,x]:[y,x];
+    if(m<=2)continue;
+    const d=m+Math.abs(c)*2.2; if(d<bd){bd=d;best=el}
+  }
+  focusTile(best);
+}
+const dockTile=k=>scr.querySelector(`.bar [data-k="${k}"]`);
+function ok(){
+  const cur=scr.querySelector('.t.on');
+  if(cur.dataset.k==='all')focusTile(scr.querySelector('.drawer .t'));
+  else{cur.animate([{filter:'brightness(1)'},{filter:'brightness(1.6)'},{filter:'brightness(1)'}],{duration:260})}
+}
+function back(){if(scr.classList.contains('open'))focusTile(dockTile('all'))}
+
+document.querySelector('.pad').addEventListener('click',e=>{const b=e.target.closest('[data-dir]');if(b){stopTour();move(b.dataset.dir)}});
+document.getElementById('ok').onclick=()=>{stopTour();ok()};
+document.getElementById('back').onclick=()=>{stopTour();back()};
+scr.addEventListener('click',e=>{const el=e.target.closest('.t');if(el){stopTour();focusTile(el)}});
+document.addEventListener('keydown',e=>{
+  const m={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[e.key];
+  if(m){e.preventDefault();stopTour();move(m)}
+  else if(e.key==='Enter'&&!e.target.closest('button')){e.preventDefault();stopTour();ok()}
+  else if(e.key==='Escape'||e.key==='Backspace'){stopTour();back()}
+});
+
+// swatches
+const ORDER=['all','yt','nf','pv','hu','mx','dp','pc','pp','ph','rk','sp','h1','h2','ap','in','st'];
+document.getElementById('sw').innerHTML=ORDER.map(k=>{const p=APPS[k][5];return `<button data-k="${k}" aria-current="false"><span class="chip" style="background:radial-gradient(60% 70% at 70% 100%,${p[3]},transparent 70%),linear-gradient(180deg,${p[0]},${p[1]} 40%,${p[2]} 75%,${p[3]})"></span><span><b>${APPS[k][4]}</b><small>${APPS[k][0]}</small></span></button>`}).join('');
+document.getElementById('sw').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;stopTour();
+  const k=b.dataset.k;
+  focusTile(dockTile(k)||scr.querySelector(`.top [data-k="${k}"]`)||scr.querySelector(`.drawer [data-k="${k}"]`));
+  document.getElementById('tv').scrollIntoView({behavior:'smooth',block:'center'});
+});
+
+// tour
+let timer=null,ti=0;const tourBtn=document.getElementById('tour');
+function stopTour(){if(timer){clearInterval(timer);timer=null;tourBtn.setAttribute('aria-pressed','false');tourBtn.textContent='Play all skies'}}
+tourBtn.onclick=()=>{
+  if(timer){stopTour();return}
+  tourBtn.setAttribute('aria-pressed','true');tourBtn.textContent='Stop';
+  const step=()=>{const k=ORDER[ti++%ORDER.length];focusTile(dockTile(k)||scr.querySelector(`.top [data-k="${k}"]`)||scr.querySelector(`.drawer [data-k="${k}"]`))};
+  step();timer=setInterval(step,2600);
+};
+
+focusTile(dockTile('yt'));tick();setInterval(tick,15000);
+</script>
